@@ -1,5 +1,5 @@
 import re
-
+from Bio.Seq import Seq
 #TASK1
 log_lines = [
     "2024-01-15 10:02:11 INFO Server started on port 8080",
@@ -48,19 +48,39 @@ for line in log_lines:
 #print(result5)
 
 #TASK2
-def reverse_complement(sequence):
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-    complemented = "".join(complement[base] for base in sequence)
-    return complemented[::-1]
-
-print
 
 class SequencingRead:
-    def __init__(self,read_id, sequence):
+    def __init__(self, read_id, sequence):
         self.sequence = sequence
         self.read_id = read_id
 
     def matches_mid_pair(self, forward_mid, reverse_mid) -> bool:
+        reverse_mid_rc = str(Seq(reverse_mid).reverse_complement())
+        pattern = rf"^{re.escape(forward_mid)}.*{re.escape(reverse_mid_rc)}$"
+        return bool(re.fullmatch(pattern, self.sequence))
+
+    def trim_mid_pair(self, forward_mid, reverse_mid):
+        if self.matches_mid_pair(forward_mid, reverse_mid):
+            reverse_mid_rc = str(Seq(reverse_mid).reverse_complement())
+
+            return self.sequence[len(forward_mid):-len(reverse_mid_rc)]
+
+        return None
+
+    def describe(self):
+        return f"Sequencing read: {self.read_id} ({len(self.sequence)} bp)"
+
+
+r1 = SequencingRead("demo_1", "AGCTTCGA" + "N" * 20 + str(Seq("TGCAGGTC").reverse_complement()))
+print(r1.describe())
+print(r1.matches_mid_pair("AGCTTCGA", "TGCAGGTC"))  # True
+print(r1.matches_mid_pair("CGATCGAT", "GCTAGCTA"))  # False
+print(r1.trim_mid_pair("AGCTTCGA", "TGCAGGTC"))     # 20 x "N"
+
+#TASK3
+class Demultiplexer:
+    def __init__(self, fasta_path, mid_table_path):
+
 
 
 
