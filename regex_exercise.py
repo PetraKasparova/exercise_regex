@@ -1,5 +1,12 @@
 import re
 from Bio.Seq import Seq
+from Bio import SeqIO
+import csv
+import gzip
+import os
+
+from Bio.SeqRecord import SeqRecord
+
 #TASK1
 log_lines = [
     "2024-01-15 10:02:11 INFO Server started on port 8080",
@@ -80,6 +87,51 @@ print(r1.trim_mid_pair("AGCTTCGA", "TGCAGGTC"))     # 20 x "N"
 #TASK3
 class Demultiplexer:
     def __init__(self, fasta_path, mid_table_path):
+        self.reads = []
+        self.mid_pairs = []
+
+        with gzip.open(fasta_path, 'rt') as handle:
+            for record in SeqIO.parse(handle, 'fasta'):
+                read = SequencingRead(record.id, str(record.seq))
+                self.reads.append(read)
+
+        with open(mid_table_path, 'r') as handle:
+            reader = csv.DictReader(handle, delimiter=';')
+            for row in reader:
+                label = f"{row["SampleID"]}_{row["Description"]}"
+                forward_mid = row["FBarcodeSequence"]
+                reverse_mid = row["RBarcodeSequence"]
+                self.mid_pairs.append((label, forward_mid, reverse_mid))
+
+        self.assigned = {}
+        for label, forward_mid, reverse_mid in self.mid_pairs:
+            self.assigned[label] = []
+
+        self.unassigned = []
+    def assing_reads(self):
+        for read in self.reads:
+            matched = False
+
+            for label, forward_mid, reversemid in self.mid_pairs:
+                if read.matches_mid_pair(forward_mid, reversemid):
+                    trimmed_sequence = read.trim_mid_pair(forward_mid, reversemid)
+                    trimmed_read = SequencingRead(read.id, trimmed_sequence)
+                    self.assigned[label].append(trimmed_sequence)
+                    matched = True
+                    break
+                elif read.matches_mid_pair(forward_mid, reversemid):
+                    trimmed_sequence = read.trim_mid_pair(forward_mid, reversemid)
+
+
+
+
+
+    def report(self) -> str:
+
+    def write_fasta(self, output_dir):
+
+
+#demux = Demultiplexer("fishes.fna.gz", "fishes_MIDs.csv")
 
 
 
